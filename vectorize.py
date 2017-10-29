@@ -250,7 +250,7 @@ def vectorize(data_path, label_path):
             zones = vectorize_img('%s/%s' % (data_path, path))
             for i in range(len(zones)):
                 label = labels[img][i]
-                vector = { 'data': zones[i], 'label': label }
+                vector = [zones[i], label]
                 body_zone_vectors[i].append(vector)
 
     return body_zone_vectors
