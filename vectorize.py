@@ -222,8 +222,15 @@ def group_by_zones(img_set):
 # Takes an aps filepath and returns a list of 17 vectors containing a set of
 # relevant image crops for each body zone
 def vectorize_img(image_path):
-   img_set = aps_splitter(image_path) 
-   return group_by_zones(img_set)
+    img_set = aps_splitter(image_path) 
+    groups = group_by_zones(img_set)
+    for i in range(17):
+        group, img_arr = groups[i], []
+        for item in group: 
+            if item is None: np.append(img_arr, [-1])
+            else: img_arr = np.append(img_arr, item)
+        groups[i] = img_arr
+    return groups
 
 # Takes path of file containing aps files and path of labels file as input and
 # returns a dict containing lists split up by body zones. Each list contains
@@ -253,4 +260,9 @@ def vectorize(data_path, label_path):
                 vector = [zones[i], label]
                 body_zone_vectors[i].append(vector)
 
-    return body_zone_vectors
+    xs, ys = {}, {}
+    for body_zone in range(17):
+        xs[body_zone+1] = [body_zone_vectors[body_zone][i][0] for i in range(len(body_zone_vectors[body_zone]))]
+        ys[body_zone+1] = [body_zone_vectors[body_zone][i][1] for i in range(len(body_zone_vectors[body_zone]))]
+
+    return xs, ys
