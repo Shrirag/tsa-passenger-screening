@@ -132,10 +132,12 @@ def aps_splitter(path):
     img_set = [np.rot90(pic.reshape(x, y)) for pic in img_set]
     gray_set = []
     for pic in img_set:
-        plt.imshow(img)
+        plt.imshow(pic)
         plt.axis('off')
-        plt.savefig('img.png', transparent=True, bbox_inches='tigt', pad_inches=0)
-        gray_set.append(cv2.imread('img.png', 0))
+        plt.savefig('img.png', transparent=True, bbox_inches='tight', pad_inches=0)
+        img = cv2.imread('img.png', 0)
+        img = cv2.Canny(img, 100, 200)
+        gray_set.append(img)
     return gray_set 
 
 # Takes a set of scans as returned from 'aps_splitter' and plots them
@@ -159,10 +161,25 @@ def plot_img(img):
 # Takes image scan and returns the crops of the image
 # for each body zone (in terms of front facing image)
 def sector_crops(img):
-    return [img[160:240, 0:200], img[0:200, 0:160], img[160:240, 330:512], img[0:200, 350:512], img[220:300, 0:512],
-            img[300:360, 0:256], img[300:360, 256:512], img[370:450, 0:225], img[370:450, 225:275], img[370:450, 275:512],
-            img[450:525, 0:256], img[450:525, 256:512], img[525:600, 0:256], img[525:600, 256:512], img[600:660, 0:256],
-            img[600:660, 256:512], img[220:300, 0:512]]
+    return [
+        img[57:86, 0:77], # zone 1
+        img[0:72, 0:61], # zone 2
+        img[57:86, 127:198], # zone 3
+        img[0:72, 135:198], # zone 4
+        img[79:108, 0:198], # zone 5
+        img[108:129, 0:99], # zone 6
+        img[108:129, 99:198], # zone 7
+        img[133:162, 0:87], # zone 8
+        img[133:162, 87:106], # zone 9
+        img[133:162, 106:198], # zone 10
+        img[162:189, 0:99], # zone 11
+        img[162:189, 99:198], # zone 12
+        img[189:216, 0:99], # zone 13
+        img[189:216, 99:198], # zone 14
+        img[216:238, 0:99], # zone 15
+        img[216:238, 99:198], # zone 16
+        img[79:108, 0:198]    # zone 17
+    ]
 
 # Takes a set of scans, crops each and groups all
 # the cropped images by body zone
