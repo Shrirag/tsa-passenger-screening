@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
+import cv2
 import os
 
 ##############################################################################
@@ -129,7 +130,13 @@ def aps_splitter(path):
     x, y, z = img.shape
     img_set = np.split(img, z, axis=(len(img.shape)-1))
     img_set = [np.rot90(pic.reshape(x, y)) for pic in img_set]
-    return img_set
+    gray_set = []
+    for pic in img_set:
+        plt.imshow(img)
+        plt.axis('off')
+        plt.savefig('img.png', transparent=True, bbox_inches='tigt', pad_inches=0)
+        gray_set.append(cv2.imread('img.png', 0))
+    return gray_set 
 
 # Takes a set of scans as returned from 'aps_splitter' and plots them
 def plot_img_set(img_set):
