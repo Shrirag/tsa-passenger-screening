@@ -1,3 +1,5 @@
+from multiprocessing import Process
+from multiprocessing import Queue
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
@@ -124,21 +126,30 @@ def read_data(infile):
     
     return data
 
+# Takes image, process number and multiprocessing.Queue 
+# and returns edge detections for images
+def edge_detection(img, process_num, results):
+    img_name = 'image_%s.png' % (str(process_num))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.savefig(img_name, transparent=True, bbox_inches='tight', pad_inches=0)
+    img = cv2.imread(img_name)
+    img = cv2.Canny(img, 0, 255)
+    results.put(img)
+
 # Takes 'aps' file path as input and returns split file from 3D image into 16 2D images
 def aps_splitter(path):
     img = read_data(path)
     x, y, z = img.shape
     img_set = np.split(img, z, axis=(len(img.shape)-1))
     img_set = [np.rot90(pic.reshape(x, y)) for pic in img_set]
-    gray_set = []
-    for pic in img_set:
-        plt.imshow(pic)
-        plt.axis('off')
-        plt.savefig('img.png', transparent=True, bbox_inches='tight', pad_inches=0)
-        img = cv2.imread('img.png', 0)
-        img = cv2.Canny(img, 100, 200)
-        gray_set.append(img)
-    return gray_set 
+    results = Queue() 
+    gray_imgs = [edge_detection(img_set[i], i, results) for i in range(len(img_set))]
+    jobs = [Process(ed) for ed in gray_imgs]
+    for job in jobs: job.start()
+    for job in jobs: job.join()
+    gray_set = [results.get() for item in gray_imgs]
+    return gray_set
 
 # Takes a set of scans as returned from 'aps_splitter' and plots them
 def plot_img_set(img_set):
