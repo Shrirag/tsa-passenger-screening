@@ -1,10 +1,8 @@
 from multiprocessing import Process
 from multiprocessing import Queue
 import matplotlib.pyplot as plt
+import csv, cv2, io, os
 import numpy as np
-import csv
-import cv2
-import os
 
 ##############################################################################
 # Used to turn dataset of 'aps' files and their labels into a set of vectors
@@ -130,10 +128,13 @@ def read_data(infile):
 # and returns edge detections for images
 def edge_detection(img, process_num, results):
     img_name = 'image_%s.png' % (str(process_num))
+    buf = io.BytesIO()
     plt.imshow(img)
     plt.axis('off')
-    plt.savefig(img_name, transparent=True, bbox_inches='tight', pad_inches=0)
-    img = cv2.imread(img_name)
+    plt.savefig(buf, transparent=True, bbox_inches='tight', pad_inches=0)
+    buf.seek(0)
+    img_array = np.asarray(bytearray(buf.read()), dtype=np.uint8)
+    img = cv2.imdecode(img_array, flags=cv2.IMREAD_GRAYSCALE)
     img = cv2.Canny(img, 0, 255)
     results.put(img)
 
