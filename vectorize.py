@@ -1,5 +1,3 @@
-from multiprocessing import Process
-from multiprocessing import Queue
 import matplotlib.pyplot as plt
 import csv, cv2, io, os
 import numpy as np
@@ -10,133 +8,13 @@ import numpy as np
 # well as the training label for the body zone
 ##############################################################################
 
-# Reads headers of 'aps' files
-def read_header(infile):
-
-    # Read image header (first 512 bytes)
-    h = dict()
-    fid = open(infile, 'r+b')
-    h['filename'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 20))
-    h['parent_filename'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 20))
-    h['comments1'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 80))
-    h['comments2'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 80))
-    h['energy_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['config_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['file_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['trans_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['scan_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['data_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['date_modified'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 16))
-    h['frequency'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['mat_velocity'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['num_pts'] = np.fromfile(fid, dtype = np.int32, count = 1)
-    h['num_polarization_channels'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['spare00'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['adc_min_voltage'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['adc_max_voltage'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['band_width'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['spare01'] = np.fromfile(fid, dtype = np.int16, count = 5)
-    h['polarization_type'] = np.fromfile(fid, dtype = np.int16, count = 4)
-    h['record_header_size'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['word_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['word_precision'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['min_data_value'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['max_data_value'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['avg_data_value'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['data_scale_factor'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['data_units'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['surf_removal'] = np.fromfile(fid, dtype = np.uint16, count = 1)
-    h['edge_weighting'] = np.fromfile(fid, dtype = np.uint16, count = 1)
-    h['x_units'] = np.fromfile(fid, dtype = np.uint16, count = 1)
-    h['y_units'] = np.fromfile(fid, dtype = np.uint16, count = 1)
-    h['z_units'] = np.fromfile(fid, dtype = np.uint16, count = 1)
-    h['t_units'] = np.fromfile(fid, dtype = np.uint16, count = 1)
-    h['spare02'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['x_return_speed'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_return_speed'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_return_speed'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['scan_orientation'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['scan_direction'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['data_storage_order'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['scanner_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['x_inc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_inc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_inc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['t_inc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['num_x_pts'] = np.fromfile(fid, dtype = np.int32, count = 1)
-    h['num_y_pts'] = np.fromfile(fid, dtype = np.int32, count = 1)
-    h['num_z_pts'] = np.fromfile(fid, dtype = np.int32, count = 1)
-    h['num_t_pts'] = np.fromfile(fid, dtype = np.int32, count = 1)
-    h['x_speed'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_speed'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_speed'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['x_acc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_acc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_acc'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['x_motor_res'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_motor_res'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_motor_res'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['x_encoder_res'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_encoder_res'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_encoder_res'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['date_processed'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 8))
-    h['time_processed'] = b''.join(np.fromfile(fid, dtype = 'S1', count = 8))
-    h['depth_recon'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['x_max_travel'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_max_travel'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['elevation_offset_angle'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['roll_offset_angle'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_max_travel'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['azimuth_offset_angle'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['adc_type'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['spare06'] = np.fromfile(fid, dtype = np.int16, count = 1)
-    h['scanner_radius'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['x_offset'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['y_offset'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['z_offset'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['t_delay'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['range_gate_start'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['range_gate_end'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['ahis_software_version'] = np.fromfile(fid, dtype = np.float32, count = 1)
-    h['spare_end'] = np.fromfile(fid, dtype = np.float32, count = 10)
-    return h
-
 # Reads 'aps' file and returns as numpy array
-def read_data(infile):
-    
-    extension = os.path.splitext(infile)[1]
-    
-    h = read_header(infile)
-    nx = int(h['num_x_pts'])
-    ny = int(h['num_y_pts'])
-    nt = int(h['num_t_pts'])
-    fid = open(infile, 'rb')
-    fid.seek(512) #skip header
-    
-    if(h['word_type']==7): #float32
-        data = np.fromfile(fid, dtype = np.float32, count = nx * ny * nt)
-        
-    elif(h['word_type']==4): #uint16
-        data = np.fromfile(fid, dtype = np.uint16, count = nx * ny * nt)
-        
-    data = data * h['data_scale_factor'] #scaling factor
-    data = data.reshape(nx, ny, nt, order='F').copy() #make N-d image
-    
-    return data
-
-# Takes image, process number and multiprocessing.Queue 
-# and returns edge detections for images
-def edge_detection(img, process_num, results):
-    img_name = 'image_%s.png' % (str(process_num))
-    buf = io.BytesIO()
-    plt.imshow(img)
-    plt.axis('off')
-    plt.savefig(buf, transparent=True, bbox_inches='tight', pad_inches=0)
-    buf.seek(0)
-    img_array = np.asarray(bytearray(buf.read()), dtype=np.uint8)
-    img = cv2.imdecode(img_array, flags=cv2.IMREAD_GRAYSCALE)
-    img = cv2.Canny(img, 0, 255)
-    results.put(img)
+def read_data(path):
+    fid = open(path, 'r')
+    scale = np.fromfile(fid, dtype = np.uint16, count = 1)
+    fid.seek(512)
+    data = np.fromfile(fid, dtype = np.uint16)
+    return data.reshape(512, 660, 16, order='F')
 
 # Takes 'aps' file path as input and returns split file from 3D image into 16 2D images
 def aps_splitter(path):
@@ -144,13 +22,9 @@ def aps_splitter(path):
     x, y, z = img.shape
     img_set = np.split(img, z, axis=(len(img.shape)-1))
     img_set = [np.rot90(pic.reshape(x, y)) for pic in img_set]
-    results = Queue() 
-    gray_imgs = [edge_detection(img_set[i], i, results) for i in range(len(img_set))]
-    jobs = [Process(ed) for ed in gray_imgs]
-    for job in jobs: job.start()
-    for job in jobs: job.join()
-    gray_set = [results.get() for item in gray_imgs]
-    return gray_set
+    img_set = [(img/256).astype(np.uint8) for img in img_set]
+    img_set = [cv2.Canny(img, 0, 100) for img in img_set]
+    return img_set
 
 # Takes a set of scans as returned from 'aps_splitter' and plots them
 def plot_img_set(img_set):
@@ -173,24 +47,26 @@ def plot_img(img):
 # Takes image scan and returns the crops of the image
 # for each body zone (in terms of front facing image)
 def sector_crops(img):
+
+    # Regular scale crops (works with sobel filter)
     return [
-        img[57:86, 0:77], # zone 1
-        img[0:72, 0:61], # zone 2
-        img[57:86, 127:198], # zone 3
-        img[0:72, 135:198], # zone 4
-        img[79:108, 0:198], # zone 5
-        img[108:129, 0:99], # zone 6
-        img[108:129, 99:198], # zone 7
-        img[133:162, 0:87], # zone 8
-        img[133:162, 87:106], # zone 9
-        img[133:162, 106:198], # zone 10
-        img[162:189, 0:99], # zone 11
-        img[162:189, 99:198], # zone 12
-        img[189:216, 0:99], # zone 13
-        img[189:216, 99:198], # zone 14
-        img[216:238, 0:99], # zone 15
-        img[216:238, 99:198], # zone 16
-        img[79:108, 0:198]    # zone 17
+        img[160:240, 0:200],   # zone 1
+        img[0:200, 0:160],     # zone 2
+        img[160:240, 330:512], # zone 3
+        img[0:200, 350:512],   # zone 4
+        img[220:300, 0:512],   # zone 5
+        img[300:360, 0:256],   # zone 6
+        img[300:360, 256:512], # zone 7
+        img[370:450, 0:225],   # zone 8
+        img[370:450, 225:275], # zone 9
+        img[370:450, 275:512], # zone 10
+        img[450:525, 0:256],   # zone 11
+        img[450:525, 256:512], # zone 12
+        img[525:600, 0:256],   # zone 13
+        img[525:600, 256:512], # zone 14
+        img[600:660, 0:256],   # zone 15
+        img[600:660, 256:512], # zone 16
+        img[220:300, 0:512]    # zone 17
     ]
 
 # Takes a set of scans, crops each and groups all
