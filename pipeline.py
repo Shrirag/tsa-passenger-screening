@@ -19,11 +19,9 @@ GBC_GRID_SEARCH_PATH = './dumps/gbc_grid_search.p'
 FINAL_RESULTS_PATH = './dumps/final_results.p'
 
 # Result paths
-<<<<<<< HEAD
 RFC_GRID_SEARCH_GRAPH_PATH = './images/rfc_grid_search_graph.png'
 GBC_GRID_SEARCH_GRAPH_PATH = './images/gbc_grid_search_graph.png'
 FINAL_RESULTS_GRAPH_PATH = './images/final_results_graph.png'
-=======
 CLASS_DIST_BAR_GRAPH_PATH = ''
 RFC_GRID_SEARCH_GRAPH_PATH = ''
 GBC_GRID_SEARCH_GRAPH_PATH = ''
