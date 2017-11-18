@@ -19,6 +19,7 @@ GBC_GRID_SEARCH_PATH = ''
 FINAL_RESULTS_PATH = ''
 
 # Result paths
+CLASS_DIST_BAR_GRAPH_PATH = ''
 RFC_GRID_SEARCH_GRAPH_PATH = ''
 GBC_GRID_SEARCH_GRAPH_PATH = ''
 FINAL_RESULTS_GRAPH_PATH = ''
@@ -29,6 +30,33 @@ GRID_SEARCH_CV_FOLDS = 3 # Number of folds for parameter selection cross validat
 CV_FOLDS = 3 # Number of folds for final cross validation
 
 RANDOM_STATE = np.random.RandomState(25)
+
+def class_dist_bar(LABEL_PATH):
+    
+    df = pd.read_csv(LABEL_PATH)
+    
+    zone_count = {}
+    for i in range(1,18):
+        temp = df[df['Id'].str.endswith('Zone'+str(i))]
+        zone_count[i] = (np.sum(temp['Probability']==0), np.sum(temp['Probability']==1))
+
+    neg_class = [zone_count[i][0] for i in zone_count]
+    pos_class = [zone_count[i][1] for i in zone_count]
+
+    plt.figure(figsize = (6,6))
+    width = 0.8
+    indices = np.arange(len(neg_class))
+    plt.bar(indices, neg_class, width=width, 
+            color='g', label='Negative Class')
+    plt.bar(indices, pos_class, 
+            width=0.4*width, color='r', alpha=0.5, label='Positive Class')
+    plt.xticks(indices, 
+               ['{}'.format(i+1) for i in range(len(neg_class))] )
+    plt.xlabel("Body Zone")
+    plt.ylabel("Instances")
+    plt.title("Class Distribution Among Zones")
+    plt.legend()
+    plt.savefig(CLASS_DIST_BAR_GRAPH_PATH)
 
 def param_selection_heat_map(results, px_len, py_len, CV_FOLDS, GRAPH_PATH):
 
@@ -88,6 +116,10 @@ def main():
 
         xs, ys = vectorize(DATA_PATH, LABEL_PATH)
         pickle.dump({ 'xs': xs, 'ys': ys }, open(VECTORS_PATH, 'wb'))
+        
+     print('Class Distribution Bar Graph')
+     class_dist_bar(LABEL_PATH)
+
 
     ##########################
     # Parameter Optimization #
