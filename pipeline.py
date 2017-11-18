@@ -8,17 +8,17 @@ import pickle, time
 import numpy as np
 
 # Data file paths
-DATA_PATH = '../Sample Data' # Path of directory containing 'aps' files
-LABEL_PATH = '../Sample Data/labels.csv' # Path of csv file with labels
+DATA_PATH = '' # Path of directory containing 'aps' files
+LABEL_PATH = '' # Path of csv file with labels
 
 # Pickle dump file paths
-VECTORS_PATH = './dumps/vectors.p'
-RFC_GRID_SEARCH_PATH = './dumps/rfc_grid_search.p'
-GBC_GRID_SEARCH_PATH = './dumps/gbc_grid_search.p'
+VECTORS_PATH = ''
+RFC_GRID_SEARCH_PATH = ''
+GBC_GRID_SEARCH_PATH = ''
 
 # Result paths
-RFC_GRID_SEARCH_GRAPH_PATH = './images/Random Forest Grid Search.png'
-GBC_GRID_SEARCH_GRAPH_PATH = './images/Gradient Boost Grid Search.png'
+RFC_GRID_SEARCH_GRAPH_PATH = ''
+GBC_GRID_SEARCH_GRAPH_PATH = ''
 
 NUM_CORES = 4 # Number of cores available on machine
 
