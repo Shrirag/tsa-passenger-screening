@@ -9,24 +9,24 @@ import pickle, time
 import numpy as np
 
 # Data file paths
-DATA_PATH = '' # Path of directory containing 'aps' files
-LABEL_PATH = '' # Path of csv file with labels
+DATA_PATH = '../Sample Data/new' # Path of directory containing 'aps' files
+LABEL_PATH = '../Sample Data/new/stage1_labels.csv' # Path of csv file with labels
 
 # Pickle dump file paths
-VECTORS_PATH = ''
-RFC_GRID_SEARCH_PATH = ''
-GBC_GRID_SEARCH_PATH = ''
-FINAL_RESULTS_PATH = ''
+VECTORS_PATH = './dumps/vectors.p'
+RFC_GRID_SEARCH_PATH = './dumps/rfc_grid_search.p'
+GBC_GRID_SEARCH_PATH = './dumps/gbc_grid_search.p'
+FINAL_RESULTS_PATH = './dumps/final_results.p'
 
 # Result paths
-RFC_GRID_SEARCH_GRAPH_PATH = ''
-GBC_GRID_SEARCH_GRAPH_PATH = ''
-FINAL_RESULTS_GRAPH_PATH = ''
+RFC_GRID_SEARCH_GRAPH_PATH = './images/rfc_grid_search_graph.png'
+GBC_GRID_SEARCH_GRAPH_PATH = './images/gbc_grid_search_graph.png'
+FINAL_RESULTS_GRAPH_PATH = './images/final_results_graph.png'
 
 # ScikitLearn parameters
 NUM_CORES = 4 # Number of cores available on machine
-GRID_SEARCH_CV_FOLDS = 3 # Number of folds for parameter selection cross validation
-CV_FOLDS = 3 # Number of folds for final cross validation
+GRID_SEARCH_CV_FOLDS = 5 # Number of folds for parameter selection cross validation
+CV_FOLDS = 5 # Number of folds for final cross validation
 
 RANDOM_STATE = np.random.RandomState(25)
 
