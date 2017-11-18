@@ -95,15 +95,24 @@ def main():
     xi, yi = xs[1], ys[1]
     x_train, x_test, y_train, y_test = train_test_split(xi, yi, random_state=RANDOM_STATE)
 
-    # Range of parameters for optimization
-    param_grid = [{
+    # Random Forest Parameter Grid
+    rfc_param_grid = [{
         'n_estimators': [i for i in range(10, 50, 10)],
         'max_depth': [i for i in range(1, 5)],
         'n_jobs': [NUM_CORES],
         'random_state': [RANDOM_STATE] 
     }]
-    px_len = len(param_grid[0]['n_estimators'])
-    py_len = len(param_grid[0]['max_depth'])
+    rfc_px_len = len(rfc_param_grid[0]['n_estimators'])
+    rfc_py_len = len(rfc_param_grid[0]['max_depth'])
+
+    # Gradient Boost Parameter Grid
+    gbc_param_grid = [{
+        'n_estimators': [i for i in range(10, 50, 10)],
+        'max_depth': [i for i in range(1, 5)],
+        'random_state': [RANDOM_STATE] 
+    }]
+    gbc_px_len = len(gbc_param_grid[0]['n_estimators'])
+    gbc_py_len = len(gbc_param_grid[0]['max_depth'])
 
     # Random Forest
     print('\tRandom Forest')
@@ -111,16 +120,16 @@ def main():
     try :
 
         rfc_results = pickle.load(open(RFC_GRID_SEARCH_PATH, 'rb'))
-        param_selection_heat_map(rfc_results, px_len, py_len, CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
 
     except FileNotFoundError:
 
         rfc = RandomForestClassifier()
-        clf = GridSearchCV(estimator=rfc, param_grid=param_grid, cv=CV_FOLDS)
+        clf = GridSearchCV(estimator=rfc, param_grid=rfc_param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
         clf.fit(x_train, y_train)
         rfc_results = clf.cv_results_
         pickle.dump(rfc_results, open(RFC_GRID_SEARCH_PATH, 'wb'))
-        param_selection_heat_map(rfc_results, px_len, py_len, CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
 
     # Gradient Boosted Trees 
     
@@ -129,15 +138,15 @@ def main():
     try:
 
         gbc_results = pickle.load(open(GBC_GRID_SEARCH_PATH, 'rb')) 
-        param_selection_heat_map(gbc_results, px_len, py_len, CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
 
     except FileNotFoundError:
 
-        gbc = RandomForestClassifier()
-        clf = GridSearchCV(estimator=gbc, param_grid=param_grid, cv=CV_FOLDS)
+        gbc = GradientBoostingClassifier()
+        clf = GridSearchCV(estimator=gbc, param_grid=gbc_param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
         clf.fit(x_train, y_train)
         gbc_results = clf.cv_results_
         pickle.dump(gbc_results, open(GBC_GRID_SEARCH_PATH, 'wb'))
-        param_selection_heat_map(gbc_results, px_len, py_len, CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
 
 if __name__ == '__main__' : main()
