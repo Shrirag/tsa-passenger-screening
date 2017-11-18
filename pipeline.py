@@ -1,5 +1,6 @@
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
@@ -15,14 +16,17 @@ LABEL_PATH = '' # Path of csv file with labels
 VECTORS_PATH = ''
 RFC_GRID_SEARCH_PATH = ''
 GBC_GRID_SEARCH_PATH = ''
+FINAL_RESULTS_PATH = ''
 
 # Result paths
 RFC_GRID_SEARCH_GRAPH_PATH = ''
 GBC_GRID_SEARCH_GRAPH_PATH = ''
+FINAL_RESULTS_GRAPH_PATH = ''
 
+# ScikitLearn parameters
 NUM_CORES = 4 # Number of cores available on machine
-
-CV_FOLDS = 3 # Number of folds for cross validation
+GRID_SEARCH_CV_FOLDS = 3 # Number of folds for parameter selection cross validation
+CV_FOLDS = 3 # Number of folds for final cross validation
 
 RANDOM_STATE = np.random.RandomState(25)
 
@@ -120,16 +124,16 @@ def main():
     try :
 
         rfc_results = pickle.load(open(RFC_GRID_SEARCH_PATH, 'rb'))
-        param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, GRID_SEARCH_CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
 
     except FileNotFoundError:
 
         rfc = RandomForestClassifier()
-        clf = GridSearchCV(estimator=rfc, param_grid=rfc_param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
+        clf = GridSearchCV(estimator=rfc, param_grid=rfc_param_grid, cv=GRID_SEARCH_CV_FOLDS, n_jobs=NUM_CORES)
         clf.fit(x_train, y_train)
         rfc_results = clf.cv_results_
         pickle.dump(rfc_results, open(RFC_GRID_SEARCH_PATH, 'wb'))
-        param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, GRID_SEARCH_CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
 
     # Gradient Boosted Trees 
     
@@ -138,15 +142,53 @@ def main():
     try:
 
         gbc_results = pickle.load(open(GBC_GRID_SEARCH_PATH, 'rb')) 
-        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, GRID_SEARCH_CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
 
     except FileNotFoundError:
 
         gbc = GradientBoostingClassifier()
-        clf = GridSearchCV(estimator=gbc, param_grid=gbc_param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
+        clf = GridSearchCV(estimator=gbc, param_grid=gbc_param_grid, cv=GRID_SEARCH_CV_FOLDS, n_jobs=NUM_CORES)
         clf.fit(x_train, y_train)
         gbc_results = clf.cv_results_
         pickle.dump(gbc_results, open(GBC_GRID_SEARCH_PATH, 'wb'))
-        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
+        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, GRID_SEARCH_CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
+
+    #################### 
+    # Final Train/Test # 
+    #################### 
+
+    print('Final Train/Test')
+
+    try:
+
+        final_scores = pickle.load(open(FINAL_RESULTS_PATH, 'rb'))
+
+    except FileNotFoundError:
+
+        RFC_OPT_MAX_DEPTH = 1
+        RFC_OPT_N_ESTIMATORS = 10
+        GBC_OPT_MAX_DEPTH = 1
+        GBC_OPT_N_ESTIMATORS = 10 
+
+        final_scores = {}
+        for i in range(1, 18):
+            rfc = RandomForestClassifier(max_depth=RFC_OPT_MAX_DEPTH, n_estimators=RFC_OPT_N_ESTIMATORS, n_jobs=NUM_CORES, random_state=RANDOM_STATE)
+            gbc = GradientBoostingClassifier(max_depth=GBC_OPT_MAX_DEPTH, n_estimators=GBC_OPT_N_ESTIMATORS, random_state=RANDOM_STATE)
+            final_scores[i] = {}
+            final_scores[i]['rfc'] = cross_val_score(rfc, xs[i], ys[i], cv=CV_FOLDS, n_jobs=NUM_CORES)
+            final_scores[i]['gbc'] = cross_val_score(gbc, xs[i], ys[i], cv=CV_FOLDS, n_jobs=NUM_CORES)
+
+        pickle.dump(final_scores, open(FINAL_RESULTS_PATH, 'wb'))
+
+    fig, axarr = plt.subplots(5, 4, figsize=(25, 25))
+    for i in range(1, 18):
+        a, b = final_scores[i]['rfc'], final_scores[i]['gbc']
+        row, col = int((i-1)/4), (i-1)%4
+        axarr[row][col].boxplot([a, b])
+        axarr[row][col].set_title('Body Zone %s' % (i))
+        axarr[row][col].set_xticklabels(['RFC', 'GBC'])
+        axarr[row][col].set_ylabel('Accuracy')
+    for i in range(1, 4): axarr[4][i].axis('off')
+    plt.savefig(FINAL_RESULTS_GRAPH_PATH)
 
 if __name__ == '__main__' : main()
