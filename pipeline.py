@@ -22,10 +22,7 @@ FINAL_RESULTS_PATH = './dumps/final_results.p'
 RFC_GRID_SEARCH_GRAPH_PATH = './images/rfc_grid_search_graph.png'
 GBC_GRID_SEARCH_GRAPH_PATH = './images/gbc_grid_search_graph.png'
 FINAL_RESULTS_GRAPH_PATH = './images/final_results_graph.png'
-CLASS_DIST_BAR_GRAPH_PATH = ''
-RFC_GRID_SEARCH_GRAPH_PATH = ''
-GBC_GRID_SEARCH_GRAPH_PATH = ''
-FINAL_RESULTS_GRAPH_PATH = ''
+CLASS_DIST_BAR_GRAPH_PATH = './images/class_dist_bar_graph.png'
 
 # ScikitLearn parameters
 NUM_CORES = 4 # Number of cores available on machine
