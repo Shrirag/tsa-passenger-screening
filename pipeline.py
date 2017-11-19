@@ -1,3 +1,4 @@
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score 
@@ -5,12 +6,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 from vectorize import vectorize
+import pandas as pd
 import pickle, time
 import numpy as np
 
 # Data file paths
 DATA_PATH = '../Sample Data/new' # Path of directory containing 'aps' files
-LABEL_PATH = '../Sample Data/new/stage1_labels.csv' # Path of csv file with labels
+LABEL_PATH = '../Sample Data/new/false_labels.csv' # Path of csv file with labels
 
 # Pickle dump file paths
 VECTORS_PATH = './dumps/vectors.p'
@@ -58,44 +60,76 @@ def class_dist_bar(LABEL_PATH):
     plt.legend()
     plt.savefig(CLASS_DIST_BAR_GRAPH_PATH)
 
+def optimize_hyper_params(model, param_grid, xs, ys):
+    
+    x_ps, y_ps = {}, {} 
+    for i in range(1, 18):
+        x_ps[i], y_ps[i] = [], []
+        rng = len(xs[i])
+        count = int(len(xs[i]) * .20)
+        indices = np.random.choice([i for i in range(0, rng)], size=count, replace=False)
+        for j in indices:
+            x_ps[i].append(xs[i][j])
+            y_ps[i].append(ys[i][j])
+
+    results = {}
+    for i in range(1, 18):
+        est = None
+        if model == 'rfc': est = RandomForestClassifier()
+        else: est = GradientBoostingClassifier()
+        clf = GridSearchCV(estimator=est, param_grid=param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
+        clf.fit(x_ps[i], y_ps[i])
+        results[i] = clf.cv_results_
+        
+    return results
+
 def param_selection_heat_map(results, px_len, py_len, CV_FOLDS, GRAPH_PATH):
 
-    params = results['params']
-    param_scores = []
-    for i in range(CV_FOLDS):
-        param_scores.append(results['split%s_test_score' % (i)])
+    fig, axarr = plt.subplots(5, 4, figsize=(30, 30))
+    
+    for k in range(1, 18):
 
-    param_scores = [sum(x)/len(x) for x in np.asarray(param_scores).transpose()]
+        params = results[k]['params']
+        param_scores = []
+        for i in range(CV_FOLDS):
+            param_scores.append(results[k]['split%s_test_score' % (i)])
 
-    ps = [] 
-    for i in range(len(params)): 
-        ps.append({
-            'max_depth': params[i]['max_depth'],
-            'n_estimators': params[i]['n_estimators'],
-            'score': param_scores[i]
-        })
+        param_scores = [sum(x)/len(x) for x in np.asarray(param_scores).transpose()]
 
-    x, y = [], []
-    for i in range(len(ps)): 
-        if ps[i]['max_depth'] not in x: x.append(ps[i]['max_depth'])
-        if ps[i]['n_estimators'] not in y: y.append(ps[i]['n_estimators'])
-    z = np.asarray([ps[i]['score'] for i in range(len(ps))]).ravel()
+        ps = [] 
+        for i in range(len(params)): 
+            ps.append({
+                'max_depth': params[i]['max_depth'],
+                'n_estimators': params[i]['n_estimators'],
+                'score': param_scores[i]
+            })
 
-    arr = []
-    for i in range(0, len(params), px_len):
-        row = []
-        for j in range(px_len): row.append(z[i+j])
-        arr.append(row)
+        x, y = [], []
+        for i in range(len(ps)): 
+            if ps[i]['max_depth'] not in x: x.append(ps[i]['max_depth'])
+            if ps[i]['n_estimators'] not in y: y.append(ps[i]['n_estimators'])
+        z = np.asarray([ps[i]['score'] for i in range(len(ps))]).ravel()
 
-    fig, axarr = plt.subplots(1, 1, figsize=(10, 10))
-    plot = axarr.imshow(arr, aspect='auto')
-    axarr.set_xticks([i for i in range(len(y))], minor=False)
-    axarr.set_yticks([i for i in range(len(x))], minor=False)
-    axarr.set_xticklabels(y, minor=False)
-    axarr.set_yticklabels(x, minor=False)
-    axarr.set_xlabel('Number of Estimators')
-    axarr.set_ylabel('Max Depth')
-    fig.colorbar(plot)
+        arr = []
+        for i in range(0, len(params), px_len):
+            row = []
+            for j in range(px_len): row.append(z[i+j])
+            arr.append(row)
+
+        row, col = int((k-1)/4), (k-1)%4
+        img = axarr[row][col].imshow(arr)
+        divider = make_axes_locatable(axarr[row][col])
+        cax = divider.append_axes("right", size="10%", pad=0.05) 
+        axarr[row][col].set_xticks([i for i in range(len(y))], minor=False)
+        axarr[row][col].set_yticks([i for i in range(len(x))], minor=False)
+        axarr[row][col].set_xticklabels(y, minor=False)
+        axarr[row][col].set_yticklabels(x, minor=False)
+        axarr[row][col].set_xlabel('Number of Estimators')
+        axarr[row][col].set_ylabel('Max Depth')
+        axarr[row][col].set_title('Zone %s' % (k))
+        plt.colorbar(img, cax)
+        
+    for i in range(1,4): axarr[4][i].axis('off')
     plt.savefig(GRAPH_PATH)
 
 def main():
@@ -117,9 +151,8 @@ def main():
         xs, ys = vectorize(DATA_PATH, LABEL_PATH)
         pickle.dump({ 'xs': xs, 'ys': ys }, open(VECTORS_PATH, 'wb'))
         
-     print('Class Distribution Bar Graph')
-     class_dist_bar(LABEL_PATH)
-
+    print('Class Distribution Bar Graph')
+    class_dist_bar(LABEL_PATH)
 
     ##########################
     # Parameter Optimization #
@@ -160,10 +193,7 @@ def main():
 
     except FileNotFoundError:
 
-        rfc = RandomForestClassifier()
-        clf = GridSearchCV(estimator=rfc, param_grid=rfc_param_grid, cv=GRID_SEARCH_CV_FOLDS, n_jobs=NUM_CORES)
-        clf.fit(x_train, y_train)
-        rfc_results = clf.cv_results_
+        rfc_results = optimize_hyper_params('rfc', rfc_param_grid, xs, ys)
         pickle.dump(rfc_results, open(RFC_GRID_SEARCH_PATH, 'wb'))
         param_selection_heat_map(rfc_results, rfc_px_len, rfc_py_len, GRID_SEARCH_CV_FOLDS, RFC_GRID_SEARCH_GRAPH_PATH)
 
@@ -178,10 +208,7 @@ def main():
 
     except FileNotFoundError:
 
-        gbc = GradientBoostingClassifier()
-        clf = GridSearchCV(estimator=gbc, param_grid=gbc_param_grid, cv=GRID_SEARCH_CV_FOLDS, n_jobs=NUM_CORES)
-        clf.fit(x_train, y_train)
-        gbc_results = clf.cv_results_
+        gbc_results = optimize_hyper_params('gbc', gbc_param_grid, xs, ys)
         pickle.dump(gbc_results, open(GBC_GRID_SEARCH_PATH, 'wb'))
         param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, GRID_SEARCH_CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
 
@@ -214,12 +241,14 @@ def main():
 
     fig, axarr = plt.subplots(5, 4, figsize=(25, 25))
     for i in range(1, 18):
+
         a, b = final_scores[i]['rfc'], final_scores[i]['gbc']
         row, col = int((i-1)/4), (i-1)%4
         axarr[row][col].boxplot([a, b])
         axarr[row][col].set_title('Body Zone %s' % (i))
         axarr[row][col].set_xticklabels(['RFC', 'GBC'])
         axarr[row][col].set_ylabel('Accuracy')
+
     for i in range(1, 4): axarr[4][i].axis('off')
     plt.savefig(FINAL_RESULTS_GRAPH_PATH)
 
