@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 from vectorize import vectorize
 import pandas as pd
@@ -18,11 +19,13 @@ LABEL_PATH = '../Sample Data/new/false_labels.csv' # Path of csv file with label
 VECTORS_PATH = './dumps/vectors.p'
 RFC_GRID_SEARCH_PATH = './dumps/rfc_grid_search.p'
 GBC_GRID_SEARCH_PATH = './dumps/gbc_grid_search.p'
+XGB_GRID_SEARCH_PATH = '/dumps/xgb_grid_search.p'
 FINAL_RESULTS_PATH = './dumps/final_results.p'
 
 # Result paths
 RFC_GRID_SEARCH_GRAPH_PATH = './images/rfc_grid_search_graph.png'
 GBC_GRID_SEARCH_GRAPH_PATH = './images/gbc_grid_search_graph.png'
+XGB_GRID_SEARCH_GRAPH_PATH = './images/xgb_grid_search_graph.png'
 FINAL_RESULTS_GRAPH_PATH = './images/final_results_graph.png'
 CLASS_DIST_BAR_GRAPH_PATH = './images/class_dist_bar_graph.png'
 
@@ -61,7 +64,6 @@ def class_dist_bar(LABEL_PATH):
     plt.savefig(CLASS_DIST_BAR_GRAPH_PATH)
 
 def optimize_hyper_params(model, param_grid, xs, ys):
-    
     x_ps, y_ps = {}, {} 
     for i in range(1, 18):
         x_ps[i], y_ps[i] = [], []
@@ -74,19 +76,27 @@ def optimize_hyper_params(model, param_grid, xs, ys):
 
     results = {}
     for i in range(1, 18):
+        
         est = None
-        if model == 'rfc': est = RandomForestClassifier()
-        else: est = GradientBoostingClassifier()
-        clf = GridSearchCV(estimator=est, param_grid=param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
-        clf.fit(x_ps[i], y_ps[i])
+        if model == 'rfc':
+            est = RandomForestClassifier()
+        elif model == 'gbc':
+            est = GradientBoostingClassifier()
+        elif model == 'xgb':
+            est = XGBClassifier()
+            
+        if model == 'rfc' or model == 'gbc':
+            clf = GridSearchCV(estimator=est, param_grid=param_grid, cv=CV_FOLDS, n_jobs=NUM_CORES)
+        elif model == 'xgb':
+            clf = GridSearchCV(estimator=est, param_grid=param_grid, cv=CV_FOLDS)
+
+        clf.fit(np.array(x_ps[i]), np.array(y_ps[i]))
         results[i] = clf.cv_results_
         
     return results
 
 def param_selection_heat_map(results, px_len, py_len, CV_FOLDS, GRAPH_PATH):
-
     fig, axarr = plt.subplots(5, 4, figsize=(30, 30))
-    
     for k in range(1, 18):
 
         params = results[k]['params']
@@ -182,7 +192,20 @@ def main():
     }]
     gbc_px_len = len(gbc_param_grid[0]['n_estimators'])
     gbc_py_len = len(gbc_param_grid[0]['max_depth'])
+    
+    #XGBoost Parameter Grid
+    xgb_param_grid = [{
+        'nthread':[NUM_CORES], 
+        'objective':['binary:logistic'],
+        'learning_rate': [0.05], 
+        'max_depth': [i for i in range (10, 50, 10)],
+        'n_estimators': [5], #number of trees, change it to 1000 for better results
+        'seed': [RANDOM_STATE_XGB]
+    }]
 
+    xgb_px_len = len(xgb_param_grid[0]['n_estimators'])
+    xgb_py_len = len(xgb_param_grid[0]['max_depth'])
+    
     # Random Forest
     print('\tRandom Forest')
 
@@ -210,7 +233,21 @@ def main():
 
         gbc_results = optimize_hyper_params('gbc', gbc_param_grid, xs, ys)
         pickle.dump(gbc_results, open(GBC_GRID_SEARCH_PATH, 'wb'))
-        param_selection_heat_map(gbc_results, gbc_px_len, gbc_py_len, GRID_SEARCH_CV_FOLDS, GBC_GRID_SEARCH_GRAPH_PATH)
+
+    #XGBoost
+    
+    print('\tXGBoost')
+    
+    try:
+
+        xgb_results = pickle.load(open(XGB_GRID_SEARCH_PATH, 'rb')) 
+        param_selection_heat_map(xgb_results, xgb_px_len, xgb_py_len, GRID_SEARCH_CV_FOLDS, XGB_GRID_SEARCH_GRAPH_PATH)
+
+    except FileNotFoundError:
+
+        xgb_results = optimize_hyper_params('xgb', xgb_param_grid, xs, ys)
+        pickle.dump(xgb_results, open(XGB_GRID_SEARCH_PATH, 'wb'))
+        param_selection_heat_map(xgb_results, xgb_px_len, xgb_py_len, GRID_SEARCH_CV_FOLDS, XGB_GRID_SEARCH_GRAPH_PATH)
 
     #################### 
     # Final Train/Test # 
@@ -228,26 +265,29 @@ def main():
         RFC_OPT_N_ESTIMATORS = 10
         GBC_OPT_MAX_DEPTH = 1
         GBC_OPT_N_ESTIMATORS = 10 
+        XGB_OPT_MAX_DEPTH = 1
+        XGB_OPT_N_ESTIMATORS = 10
 
         final_scores = {}
         for i in range(1, 18):
             rfc = RandomForestClassifier(max_depth=RFC_OPT_MAX_DEPTH, n_estimators=RFC_OPT_N_ESTIMATORS, n_jobs=NUM_CORES, random_state=RANDOM_STATE)
-            gbc = GradientBoostingClassifier(max_depth=GBC_OPT_MAX_DEPTH, n_estimators=GBC_OPT_N_ESTIMATORS, random_state=RANDOM_STATE)
+            gbc = GradientBoostingClassifier(max_depth=GBC_OPT_MAX_DEPTH, n_estimators=GBC_OPT_N_ESTIMATORS, n_jobs=NUM_CORES, random_state=RANDOM_STATE)
+            xgb = XGBClassifier(nthread= NUM_CORES, max_depth=XGB_OPT_MAX_DEPTH, n_estimators=XGB_OPT_N_ESTIMATORS, seed=RANDOM_STATE_XGB)
             final_scores[i] = {}
             final_scores[i]['rfc'] = cross_val_score(rfc, xs[i], ys[i], cv=CV_FOLDS, n_jobs=NUM_CORES)
             final_scores[i]['gbc'] = cross_val_score(gbc, xs[i], ys[i], cv=CV_FOLDS, n_jobs=NUM_CORES)
+            final_scores[i]['xgb'] = cross_val_score(xgb, np.array(xs[i]), np.array(ys[i]), cv=CV_FOLDS)
 
         pickle.dump(final_scores, open(FINAL_RESULTS_PATH, 'wb'))
 
     fig, axarr = plt.subplots(5, 4, figsize=(25, 25))
     for i in range(1, 18):
 
-        a, b = final_scores[i]['rfc'], final_scores[i]['gbc']
+        a, b, c = final_scores[i]['rfc'], final_scores[i]['gbc'], final_scores[i]['xgb']
         row, col = int((i-1)/4), (i-1)%4
-        axarr[row][col].boxplot([a, b])
+        axarr[row][col].boxplot([a, b, c])
         axarr[row][col].set_title('Body Zone %s' % (i))
-        axarr[row][col].set_xticklabels(['RFC', 'GBC'])
-        axarr[row][col].set_ylabel('Accuracy')
+        axarr[row][col].set_xticklabels(['RFC', 'GBC', 'XGB'])
 
     for i in range(1, 4): axarr[4][i].axis('off')
     plt.savefig(FINAL_RESULTS_GRAPH_PATH)
