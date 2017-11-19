@@ -199,7 +199,7 @@ def main():
         'objective':['binary:logistic'],
         'learning_rate': [0.05], 
         'max_depth': [i for i in range (10, 50, 10)],
-        'n_estimators': [5], #number of trees, change it to 1000 for better results
+        'n_estimators': [i for i in range(10, 50, 10)], 
         'seed': [RANDOM_STATE_XGB]
     }]
 
