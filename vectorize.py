@@ -1,4 +1,7 @@
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
+
 import csv, cv2, io, os
 import numpy as np
 
@@ -18,13 +21,14 @@ def read_data(path):
 
 # Takes 'aps' file path as input and returns split file from 3D image into 16 2D images
 def aps_splitter(path):
-    img = read_data(path)
-    x, y, z = img.shape
-    img_set = np.split(img, z, axis=(len(img.shape)-1))
-    img_set = [np.rot90(pic.reshape(x, y)) for pic in img_set]
-    img_set = [(img/256).astype(np.uint8) for img in img_set]
-    img_set = [cv2.Canny(img, 0, 100) for img in img_set]
-    return img_set
+	img = read_data(path)
+	x, y, z = img.shape
+	img_set = np.split(img, z, axis=(len(img.shape)-1))
+	img_set = [np.rot90(pic.reshape(x, y)) for pic in img_set]
+	img_set = [(img/256).astype(np.uint8) for img in img_set]
+	img_set = [cv2.Canny(img, 0, 100) for img in img_set]
+	img_set = [cv2.resize(img, (0, 0), fx=.0625, fy=.0625) for img in img_set]
+	return img_set
 
 # Takes a set of scans as returned from 'aps_splitter' and plots them
 def plot_img_set(img_set):
@@ -48,26 +52,25 @@ def plot_img(img):
 # for each body zone (in terms of front facing image)
 def sector_crops(img):
 
-    # Regular scale crops (works with sobel filter)
-    return [
-        img[160:240, 0:200],   # zone 1
-        img[0:200, 0:160],     # zone 2
-        img[160:240, 330:512], # zone 3
-        img[0:200, 350:512],   # zone 4
-        img[220:300, 0:512],   # zone 5
-        img[300:360, 0:256],   # zone 6
-        img[300:360, 256:512], # zone 7
-        img[370:450, 0:225],   # zone 8
-        img[370:450, 225:275], # zone 9
-        img[370:450, 275:512], # zone 10
-        img[450:525, 0:256],   # zone 11
-        img[450:525, 256:512], # zone 12
-        img[525:600, 0:256],   # zone 13
-        img[525:600, 256:512], # zone 14
-        img[600:660, 0:256],   # zone 15
-        img[600:660, 256:512], # zone 16
-        img[220:300, 0:512]    # zone 17
-    ]
+	return [
+	    img[10:15, 0:12],
+	    img[0:12, 0:10],
+	    img[10:15, 20:32],
+	    img[0:12, 21:32],
+	    img[13:18, 0:32],
+	    img[18:22, 0:16],
+	    img[18:22, 16:32],
+	    img[23:28, 0:14],
+	    img[23:28, 14:17],
+	    img[23:28, 17:32],
+	    img[28:32, 0:16],
+	    img[28:32, 16:32],
+	    img[32:37, 0:16],
+	    img[32:37, 16:32],
+	    img[37:41, 0:16],
+	    img[37:41, 16:32],
+	    img[13:18, 0:32]
+	]
 
 # Takes a set of scans, crops each and groups all
 # the cropped images by body zone
@@ -167,10 +170,11 @@ def vectorize(data_path, label_path):
         if not path.startswith('._') and path.endswith('.aps'):
             img = path.split('.')[0]
             zones = vectorize_img('%s/%s' % (data_path, path))
-            for i in range(len(zones)):
-                label = labels[img][i]
-                vector = [zones[i], label]
-                body_zone_vectors[i].append(vector)
+            if img in labels:
+                for i in range(len(zones)):
+                    label = labels[img][i]
+                    vector = [zones[i], label]
+                    body_zone_vectors[i].append(vector)
 
     xs, ys = {}, {}
     for body_zone in range(17):
