@@ -42,6 +42,8 @@ CV_FOLDS =  # Number of folds for final cross validation
 RANDOM_STATE = np.random.RandomState(25)
 RANDOM_STATE_XGB = 25
 
+#https://stackoverflow.com/questions/23293011/how-to-plot-a-superimposed-bar-chart-using-matplotlib-in-python
+#Plots class distributions
 def class_dist_bar(LABEL_PATH):
     
     df = pd.read_csv(LABEL_PATH)
@@ -69,6 +71,7 @@ def class_dist_bar(LABEL_PATH):
     plt.legend()
     plt.savefig(CLASS_DIST_BAR_GRAPH_PATH)
 
+#Runs grid search cross validation to tune parameters for classes
 def optimize_hyper_params(model, param_grid, xs, ys):
 	x_ps, y_ps = {}, {} 
 	for i in range(1, 18):
@@ -98,6 +101,7 @@ def optimize_hyper_params(model, param_grid, xs, ys):
 
 	return results
 
+#Plots a heatmap of n_estimators vs max_depth for f1-score
 def param_selection_heat_map(results, px_len, py_len, CV_FOLDS, GRAPH_PATH, title):
     fig, axarr = plt.subplots(5, 4, figsize=(30, 30))
     for k in range(1, 18):
